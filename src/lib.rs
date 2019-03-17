@@ -238,6 +238,9 @@ pub enum TrapKind {
     ///
     /// [`Externals`]: trait.Externals.html
     Host(Box<host::HostError>),
+
+    /// Program execution stopped because of too many operations.
+    OutOfGas,
 }
 
 impl TrapKind {
@@ -394,6 +397,7 @@ mod table;
 mod types;
 mod validation;
 mod value;
+mod monitor;
 
 #[cfg(test)]
 mod tests;
