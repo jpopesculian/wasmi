@@ -219,11 +219,6 @@ pub trait Externals {
         index: usize,
         args: RuntimeArgs,
     ) -> Result<Option<RuntimeValue>, Trap>;
-
-    /// Get gas price of invoking a function at a specific index.
-    fn gas_for_index(_index: usize) -> u64 {
-        1
-    }
 }
 
 /// Implementation of [`Externals`] that just traps on [`invoke_index`].

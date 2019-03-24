@@ -18,6 +18,7 @@ use host::Externals;
 use imports::ImportResolver;
 use memory::MemoryRef;
 use memory_units::Pages;
+use monitor::{InterpreterMonitor, MonitoredExternals};
 use parity_wasm::elements::{External, InitExpr, Instruction, Internal, ResizableLimits, Type};
 use table::TableRef;
 use types::{GlobalDescriptor, MemoryDescriptor, TableDescriptor};
@@ -161,6 +162,7 @@ pub struct ModuleInstance {
     funcs: RefCell<Vec<FuncRef>>,
     memories: RefCell<Vec<MemoryRef>>,
     globals: RefCell<Vec<GlobalRef>>,
+    monitor: Option<RefCell<InterpreterMonitor>>,
     exports: RefCell<HashMap<String, ExternVal>>,
 }
 
@@ -172,6 +174,7 @@ impl ModuleInstance {
             tables: RefCell::new(Vec::new()),
             memories: RefCell::new(Vec::new()),
             globals: RefCell::new(Vec::new()),
+            monitor: None,
             exports: RefCell::new(HashMap::new()),
         }
     }
@@ -647,6 +650,22 @@ impl ModuleInstance {
     /// Returns `None` if there is no export with such name.
     pub fn export_by_name(&self, name: &str) -> Option<ExternVal> {
         self.exports.borrow().get(name).cloned()
+    }
+
+    /// Monitor interpreter.
+    ///
+    /// Limit the execution of the webassembly by gas
+    pub fn monitor_execution<E: MonitoredExternals>(&mut self, default_gas: u64, max_gas: u64) {
+        self.monitor = Some(RefCell::new(InterpreterMonitor::new(
+            default_gas,
+            max_gas,
+            Some(E::gas_for_index),
+        )));
+    }
+
+    /// Get Interpreter Monitor.
+    pub fn monitor(&self) -> &Option<RefCell<InterpreterMonitor>> {
+        &self.monitor
     }
 }
 

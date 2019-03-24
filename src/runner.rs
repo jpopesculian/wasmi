@@ -5,7 +5,6 @@ use core::fmt;
 use core::ops;
 use core::{u32, usize};
 use func::{FuncInstance, FuncInstanceInternal, FuncRef};
-use monitor::InterpreterMonitor;
 use host::Externals;
 use isa;
 use memory::MemoryRef;
@@ -169,7 +168,6 @@ pub struct Interpreter {
     value_stack: ValueStack,
     call_stack: Vec<FunctionContext>,
     return_type: Option<ValueType>,
-    monitor: Option<InterpreterMonitor>,
     state: InterpreterState,
 }
 
@@ -195,7 +193,6 @@ impl Interpreter {
             value_stack,
             call_stack,
             return_type,
-            monitor: None,
             state: InterpreterState::Initialized,
         })
     }
@@ -212,7 +209,6 @@ impl Interpreter {
         assert!(self.state == InterpreterState::Initialized);
 
         self.state = InterpreterState::Started;
-        self.monitor = Some(InterpreterMonitor::default(Some(E::gas_for_index))); // TODO move this to monitored_execution or something
         self.run_interpreter_loop(externals)?;
 
         let opt_return_value = self
@@ -350,8 +346,8 @@ impl Interpreter {
                  return or an implicit block `end`.",
             );
 
-            if let Some(ref mut monitor) = self.monitor {
-                monitor.check_gas(&instruction)?
+            if let Some(ref monitor) = function_context.module().monitor() {
+                monitor.borrow_mut().check_gas(&instruction)?
             }
 
             match self.run_instruction(function_context, &instruction)? {
