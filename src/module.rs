@@ -652,16 +652,16 @@ impl ModuleInstance {
         self.exports.borrow().get(name).cloned()
     }
 
-    /// Monitor interpreter.
-    ///
-    /// Limit the execution of the webassembly by gas
+    /// Add middleware object
     pub fn push_middleware(&self, middleware: Box<dyn Middleware>) {
         self.middleware
             .borrow_mut()
             .push(middleware as Box<dyn Middleware>);
     }
 
-    /// Get Interpreter Monitor.
+    /// Emit a middleware event
+    ///
+    /// Sends middleware event to all handlers and returns the first error returned or Ok if none.
     pub fn emit_middleware_event(&self, event: MiddlewareEvent) -> Result<(), Error> {
         for middleware in self.middleware.borrow_mut().iter_mut() {
             middleware.handle(event.clone())?;
@@ -742,7 +742,7 @@ impl<'a> NotStartedModuleRef<'a> {
         self.loaded_module.module().start_section().is_some()
     }
 
-    /// Limit the execution of the webassembly by gas
+    /// Add middleware to underlying module instance
     pub fn push_middleware(self, middleware: Box<dyn Middleware>) -> Self {
         self.instance.push_middleware(middleware);
         return self;
