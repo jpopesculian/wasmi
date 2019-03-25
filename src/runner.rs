@@ -9,6 +9,7 @@ use host::Externals;
 use isa;
 use memory::MemoryRef;
 use memory_units::Pages;
+use middleware::MiddlewareEvent;
 use module::ModuleRef;
 use nan_preserving_float::{F32, F64};
 use parity_wasm::elements::Local;
@@ -346,9 +347,10 @@ impl Interpreter {
                  return or an implicit block `end`.",
             );
 
-            if let Some(ref monitor) = function_context.module().monitor() {
-                monitor.borrow_mut().check_gas(&instruction)?
-            }
+            function_context
+                .module()
+                .emit_middleware_event(MiddlewareEvent::Instruction(&instruction))
+                .map_err(|_| TrapKind::Unreachable)?;
 
             match self.run_instruction(function_context, &instruction)? {
                 InstructionOutcome::RunNextInstruction => {}

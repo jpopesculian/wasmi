@@ -238,9 +238,6 @@ pub enum TrapKind {
     ///
     /// [`Externals`]: trait.Externals.html
     Host(Box<host::HostError>),
-
-    /// Program execution stopped because of too many operations.
-    OutOfGas,
 }
 
 impl TrapKind {
@@ -390,14 +387,15 @@ mod host;
 mod imports;
 mod isa;
 mod memory;
+mod middleware;
 mod module;
+mod monitor;
 pub mod nan_preserving_float;
 mod runner;
 mod table;
 mod types;
 mod validation;
 mod value;
-mod monitor;
 
 #[cfg(test)]
 mod tests;
@@ -407,7 +405,9 @@ pub use self::global::{GlobalInstance, GlobalRef};
 pub use self::host::{Externals, HostError, NopExternals, RuntimeArgs};
 pub use self::imports::{ImportResolver, ImportsBuilder, ModuleImportResolver};
 pub use self::memory::{MemoryInstance, MemoryRef, LINEAR_MEMORY_PAGE_SIZE};
+pub use self::middleware::{Middleware, MiddlewareEvent};
 pub use self::module::{ExternVal, ModuleInstance, ModuleRef, NotStartedModuleRef};
+pub use self::monitor::{InterpreterMonitor, MonitoredExternals};
 pub use self::table::{TableInstance, TableRef};
 pub use self::types::{GlobalDescriptor, MemoryDescriptor, Signature, TableDescriptor, ValueType};
 pub use self::value::{Error as ValueError, FromRuntimeValue, LittleEndianConvert, RuntimeValue};

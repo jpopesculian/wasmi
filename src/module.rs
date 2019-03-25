@@ -18,7 +18,7 @@ use host::Externals;
 use imports::ImportResolver;
 use memory::MemoryRef;
 use memory_units::Pages;
-use monitor::{InterpreterMonitor, MonitoredExternals};
+use middleware::{Middleware, MiddlewareEvent};
 use parity_wasm::elements::{External, InitExpr, Instruction, Internal, ResizableLimits, Type};
 use table::TableRef;
 use types::{GlobalDescriptor, MemoryDescriptor, TableDescriptor};
@@ -162,7 +162,7 @@ pub struct ModuleInstance {
     funcs: RefCell<Vec<FuncRef>>,
     memories: RefCell<Vec<MemoryRef>>,
     globals: RefCell<Vec<GlobalRef>>,
-    monitor: Option<RefCell<InterpreterMonitor>>,
+    middleware: RefCell<Vec<Box<Middleware>>>,
     exports: RefCell<HashMap<String, ExternVal>>,
 }
 
@@ -174,7 +174,7 @@ impl ModuleInstance {
             tables: RefCell::new(Vec::new()),
             memories: RefCell::new(Vec::new()),
             globals: RefCell::new(Vec::new()),
-            monitor: None,
+            middleware: RefCell::new(Vec::new()),
             exports: RefCell::new(HashMap::new()),
         }
     }
@@ -655,17 +655,18 @@ impl ModuleInstance {
     /// Monitor interpreter.
     ///
     /// Limit the execution of the webassembly by gas
-    pub fn monitor_execution<E: MonitoredExternals>(&mut self, default_gas: u64, max_gas: u64) {
-        self.monitor = Some(RefCell::new(InterpreterMonitor::new(
-            default_gas,
-            max_gas,
-            Some(E::gas_for_index),
-        )));
+    pub fn push_middleware(&self, middleware: Box<dyn Middleware>) {
+        self.middleware
+            .borrow_mut()
+            .push(middleware as Box<dyn Middleware>);
     }
 
     /// Get Interpreter Monitor.
-    pub fn monitor(&self) -> &Option<RefCell<InterpreterMonitor>> {
-        &self.monitor
+    pub fn emit_middleware_event(&self, event: MiddlewareEvent) -> Result<(), Error> {
+        for middleware in self.middleware.borrow_mut().iter_mut() {
+            middleware.handle(event.clone())?;
+        }
+        Ok(())
     }
 }
 
@@ -739,6 +740,12 @@ impl<'a> NotStartedModuleRef<'a> {
     /// Returns `true` if it has a `start` function.
     pub fn has_start(&self) -> bool {
         self.loaded_module.module().start_section().is_some()
+    }
+
+    /// Limit the execution of the webassembly by gas
+    pub fn push_middleware(self, middleware: Box<dyn Middleware>) -> Self {
+        self.instance.push_middleware(middleware);
+        return self;
     }
 }
 
